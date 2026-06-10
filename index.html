@@ -241,7 +241,7 @@ function viewVentas(){
       <td class="num">${del>0?'<span class="neg">-'+fUSD(del)+'</span>':'<span class="muted">—</span>'}</td>
       <td class="num ${net>=0?'pos':'neg'}">${fUSD(net)}</td>
       <td class="muted" style="white-space:normal;max-width:120px">${esc(s.nota)}</td>
-      <td style="text-align:right"><button class="row-action act-del-sale" title="Eliminar venta">${ICON.trash}</button></td>
+      <td style="text-align:right"><button class="row-action act-edit-sale" title="Editar venta">${ICON.edit}</button><button class="row-action act-del-sale" title="Eliminar venta">${ICON.trash}</button></td>
     </tr>`;}).join('');
   if(!sales.length)rows=`<tr><td colspan="11"><div class="empty">${ICON.box}<div>Aún no hay ventas registradas.</div></div></td></tr>`;
   const totIngreso=db.sales.reduce((a,s)=>a+s.ingresoUSD,0);
@@ -321,7 +321,7 @@ function viewGastos(){
       <td class="num">${e.moneda==='DIVISAS'?fUSD(e.monto):fBs(e.monto)}</td>
       <td class="num muted">${e.tasa?int.format(e.tasa):'—'}</td>
       <td class="num neg">${fUSD(e.gastoUSD)}</td>
-      <td style="text-align:right"><button class="row-action act-del-exp" title="Eliminar gasto">${ICON.trash}</button></td>
+      <td style="text-align:right"><button class="row-action act-edit-exp" title="Editar gasto">${ICON.edit}</button><button class="row-action act-del-exp" title="Eliminar gasto">${ICON.trash}</button></td>
     </tr>`).join('');
   if(!list.length)rows=`<tr><td colspan="7"><div class="empty">${ICON.box}<div>Aún no hay gastos registrados.</div></div></td></tr>`;
   const tot=db.expenses.reduce((a,e)=>a+e.gastoUSD,0);
@@ -576,6 +576,7 @@ function wire(){
   document.querySelectorAll('.act-del-ship').forEach(b=>b.onclick=()=>{
     const id=b.closest('.ship-card').dataset.id;
     confirmModal('Eliminar envío','¿Eliminar este envío de la lista?',()=>{db.shipments=db.shipments.filter(x=>x.id!==id);renderKeep('envios');save();toast('Envío eliminado')})});
+  document.querySelectorAll('.act-edit-sale').forEach(b=>b.onclick=()=>{const id=b.closest('tr').dataset.id;openEditSale(id)});
   document.querySelectorAll('.act-del-sale').forEach(b=>b.onclick=()=>{
     const id=b.closest('tr').dataset.id;const s=db.sales.find(x=>x.id===id);
     confirmModal('Eliminar venta','¿Eliminar esta venta de '+s.modelo+'? Se devolverá 1 unidad al stock'+(db.expenses.some(e=>e.fromSale===id)?' y se borrará su delivery asociado':'')+'.',()=>{
@@ -584,6 +585,7 @@ function wire(){
       db.expenses=db.expenses.filter(e=>e.fromSale!==id);
       render();toast('Venta eliminada · stock devuelto')});
   });
+  document.querySelectorAll('.act-edit-exp').forEach(b=>b.onclick=()=>{const id=b.closest('tr').dataset.id;openEditExp(id)});
   document.querySelectorAll('.act-del-exp').forEach(b=>b.onclick=()=>{
     const id=b.closest('tr').dataset.id;const ex=db.expenses.find(x=>x.id===id);
     const linked=ex&&ex.fromSale;
@@ -732,6 +734,87 @@ function openAddModel(){
     close();render();toast('✓ Modelo agregado: '+d.modelo.trim());
   };
   setTimeout(()=>document.querySelector('#amForm [name=modelo]').focus(),50);
+}
+
+/* ============ EDIT MODALS ============ */
+function openEditSale(id,tmp){
+  const s=db.sales.find(x=>x.id===id);if(!s)return;
+  const cur=tmp||{fecha:s.fecha,modelo:s.modelo,tipoPago:s.tipoPago,monto:s.monto,tasa:s.tasa||'',nota:s.nota||''};
+  const isBs=cur.tipoPago==='BOLIVARES';
+  const opts=db.inventory.map(m=>`<option value="${m.id}" ${m.modelo===cur.modelo?'selected':''}>${esc(m.modelo)} · stock ${m.stockActual}</option>`).join('');
+  document.getElementById('modal-root').innerHTML=`<div class="modal-back" id="mback"><div class="modal" style="max-width:520px">
+    <div class="modal-head"><h3>Editar venta</h3><button class="btn-ghost btn" id="mx" style="padding:4px 8px">✕</button></div>
+    <div class="modal-body"><div class="form-grid">
+      <div class="field"><label class="lbl">Fecha</label><input class="inp" id="esf-fecha" type="date" value="${esc(cur.fecha)}" /></div>
+      <div class="field"><label class="lbl">Modelo</label><select class="inp" id="esf-modelo"><option value="">Seleccionar…</option>${opts}</select></div>
+      <div class="field full"><label class="lbl">Tipo de pago</label><div class="seg" id="esf-tipo"><button type="button" data-v="DIVISAS" class="${!isBs?'on':''}">Divisas ($)</button><button type="button" data-v="BOLIVARES" class="${isBs?'on':''}">Bolívares (Bs)</button></div></div>
+      <div class="field ${isBs?'':'full'}"><label class="lbl">Monto recibido ${isBs?'(Bs)':'($)'}</label><input class="inp" id="esf-monto" type="number" step="any" placeholder="0" value="${esc(cur.monto)}" /></div>
+      ${isBs?`<div class="field"><label class="lbl">Tasa de cambio</label><input class="inp" id="esf-tasa" type="number" step="any" placeholder="Bs por $" value="${esc(cur.tasa)}" /></div>`:`<input type="hidden" id="esf-tasa" value="" />`}
+      <div class="field full"><label class="lbl">Nota (opcional)</label><input class="inp" id="esf-nota" type="text" placeholder="Ej. cliente, fiado…" value="${esc(cur.nota)}" /></div>
+    </div></div>
+    <div class="modal-foot"><button class="btn btn-ghost" id="mcancel">Cancelar</button><button class="btn btn-gold" id="esf-save">Guardar cambios</button></div>
+  </div></div>`;
+  const close=closeModal;
+  document.getElementById('mx').onclick=close;document.getElementById('mcancel').onclick=close;
+  document.getElementById('mback').onclick=ev=>{if(ev.target.id==='mback')close()};
+  document.querySelectorAll('#esf-tipo button').forEach(b=>b.onclick=()=>{
+    const selEl=document.getElementById('esf-modelo');
+    const inv=db.inventory.find(x=>x.id===selEl.value);
+    openEditSale(id,{fecha:document.getElementById('esf-fecha').value,modelo:inv?inv.modelo:cur.modelo,tipoPago:b.dataset.v,monto:document.getElementById('esf-monto').value,tasa:'',nota:document.getElementById('esf-nota').value});
+  });
+  document.getElementById('esf-save').onclick=()=>{
+    const fecha=document.getElementById('esf-fecha').value;
+    const invId=document.getElementById('esf-modelo').value;
+    const inv=db.inventory.find(x=>x.id===invId);
+    const monto=parseFloat(document.getElementById('esf-monto').value)||0;
+    const tasa=parseFloat(document.getElementById('esf-tasa').value)||0;
+    const nota=document.getElementById('esf-nota').value.trim();
+    if(!invId){toast('Selecciona un modelo');return}
+    if(!(monto>0)){toast('Ingresa el monto');return}
+    if(isBs&&!(tasa>0)){toast('Ingresa la tasa de cambio');return}
+    const ingresoUSD=isBs?(tasa>0?monto/tasa:0):monto;
+    const costoLanded=inv?+inv.costo:s.costoLanded;
+    s.fecha=fecha;s.modelo=inv?inv.modelo:s.modelo;s.tipoPago=cur.tipoPago;s.monto=monto;
+    s.tasa=isBs?tasa:null;s.ingresoUSD=ingresoUSD;s.costoLanded=costoLanded;
+    s.ganancia=ingresoUSD-costoLanded;s.nota=nota;
+    close();save();render();toast('✓ Venta actualizada');
+  };
+}
+
+function openEditExp(id,tmp){
+  const ex=db.expenses.find(x=>x.id===id);if(!ex)return;
+  const cur=tmp||{fecha:ex.fecha,concepto:ex.concepto,moneda:ex.moneda,monto:ex.monto,tasa:ex.tasa||''};
+  const isBs=cur.moneda==='BOLIVARES';
+  document.getElementById('modal-root').innerHTML=`<div class="modal-back" id="mback"><div class="modal" style="max-width:480px">
+    <div class="modal-head"><h3>Editar gasto</h3><button class="btn-ghost btn" id="mx" style="padding:4px 8px">✕</button></div>
+    <div class="modal-body"><div class="form-grid">
+      <div class="field"><label class="lbl">Fecha</label><input class="inp" id="eef-fecha" type="date" value="${esc(cur.fecha)}" /></div>
+      <div class="field"><label class="lbl">Moneda</label><div class="seg" id="eef-moneda"><button type="button" data-v="DIVISAS" class="${!isBs?'on':''}">Divisas ($)</button><button type="button" data-v="BOLIVARES" class="${isBs?'on':''}">Bolívares (Bs)</button></div></div>
+      <div class="field full"><label class="lbl">Concepto</label><input class="inp" id="eef-concepto" type="text" placeholder="Ej. Delivery MRW" value="${esc(cur.concepto)}" /></div>
+      <div class="field ${isBs?'':'full'}"><label class="lbl">Monto ${isBs?'(Bs)':'($)'}</label><input class="inp" id="eef-monto" type="number" step="any" placeholder="0" value="${esc(cur.monto)}" /></div>
+      ${isBs?`<div class="field"><label class="lbl">Tasa de cambio</label><input class="inp" id="eef-tasa" type="number" step="any" placeholder="Bs por $" value="${esc(cur.tasa)}" /></div>`:`<input type="hidden" id="eef-tasa" value="" />`}
+    </div></div>
+    <div class="modal-foot"><button class="btn btn-ghost" id="mcancel">Cancelar</button><button class="btn btn-gold" id="eef-save">Guardar cambios</button></div>
+  </div></div>`;
+  const close=closeModal;
+  document.getElementById('mx').onclick=close;document.getElementById('mcancel').onclick=close;
+  document.getElementById('mback').onclick=ev=>{if(ev.target.id==='mback')close()};
+  document.querySelectorAll('#eef-moneda button').forEach(b=>b.onclick=()=>{
+    openEditExp(id,{fecha:document.getElementById('eef-fecha').value,concepto:document.getElementById('eef-concepto').value,moneda:b.dataset.v,monto:document.getElementById('eef-monto').value,tasa:''});
+  });
+  document.getElementById('eef-save').onclick=()=>{
+    const fecha=document.getElementById('eef-fecha').value;
+    const concepto=document.getElementById('eef-concepto').value.trim();
+    const monto=parseFloat(document.getElementById('eef-monto').value)||0;
+    const tasa=parseFloat(document.getElementById('eef-tasa').value)||0;
+    if(!concepto){toast('Escribe el concepto');return}
+    if(!(monto>0)){toast('Ingresa el monto');return}
+    if(isBs&&!(tasa>0)){toast('Ingresa la tasa de cambio');return}
+    const gastoUSD=isBs?(tasa>0?monto/tasa:0):monto;
+    ex.fecha=fecha;ex.concepto=concepto;ex.moneda=cur.moneda;ex.monto=monto;
+    ex.tasa=isBs?tasa:null;ex.gastoUSD=gastoUSD;
+    close();save();render();toast('✓ Gasto actualizado');
+  };
 }
 
 /* ============ DATA MENU ============ */
