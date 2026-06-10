@@ -45,7 +45,7 @@ header.topbar{
   backdrop-filter:saturate(140%) blur(14px);
   border-bottom:1px solid var(--line-soft);
 }
-.topbar-in{max-width:1180px;margin:0 auto;padding:0 26px;display:flex;align-items:center;gap:30px;height:66px}
+.topbar-in{max-width:1180px;margin:0 auto;padding:0 26px 8px;display:flex;align-items:center;gap:30px;height:66px;overflow:hidden}
 .brand{display:flex;align-items:center;gap:11px;user-select:none}
 .brand-logo{width:32px;height:32px;border-radius:50%;display:block;flex-shrink:0}
 .brand .txt{display:flex;flex-direction:column;line-height:1.05}
