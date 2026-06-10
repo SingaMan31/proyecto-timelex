@@ -358,4 +358,9 @@ select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns
   .tabs::-webkit-scrollbar {
     display: none;
   }
+  .tab {
+    font-size: 11px;
+    padding: 6px 8px;
+    white-space: nowrap;
+  }
 }
