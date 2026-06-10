@@ -316,3 +316,29 @@ select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns
 }
 .ventas-layout{display:grid;grid-template-columns:1fr 360px;gap:22px;align-items:start}
 @media(max-width:960px){.ventas-layout{grid-template-columns:1fr}}
+
+@media(max-width:768px){
+  /* topbar */
+  .topbar-in{gap:8px;padding:0 14px}
+  .brand-logo{width:26px;height:26px}
+  .brand .mark{font-size:15px}
+
+  /* tabs: scroll horizontal sin corte */
+  nav.tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;scrollbar-width:none}
+  nav.tabs::-webkit-scrollbar{display:none}
+  nav.tabs button{white-space:nowrap;flex-shrink:0;padding:8px 10px;font-size:12px}
+
+  /* kpi 2x2 */
+  .kpi-grid{grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:18px}
+  .kpi{padding:14px 12px}
+  .kpi .k{font-size:10.5px;margin-bottom:6px}
+  .kpi .v{font-size:21px}
+  .kpi .meta{font-size:11px}
+
+  /* chart con scroll horizontal */
+  .card-pad:has(.chart){overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .chart{min-width:480px}
+
+  /* general padding */
+  .app{padding:0 14px 80px}
+}
