@@ -342,3 +342,14 @@ select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns
   /* general padding */
   .app{padding:0 14px 80px}
 }
+
+@media (max-width: 768px) {
+  .topbar-in {
+    flex-wrap: wrap;
+  }
+  .tabs {
+    order: 3;
+    width: 100%;
+    overflow-x: auto;
+  }
+}
