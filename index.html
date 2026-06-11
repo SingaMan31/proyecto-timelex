@@ -162,7 +162,7 @@ function viewInventario(){
       ?`<span class="photo-cell-wrap"><img class="photo-thumb" src="${esc(fotoUrl)}" data-photo="${esc(fotoUrl)}" data-name="${esc(m.modelo)}" onerror="this.parentElement.classList.add('err')" /><button class="photo-edit-btn" data-id="${m.id}" title="Cambiar foto">${pencilSvg}</button><button class="btn-add-photo photo-err-btn" data-id="${m.id}">Sin foto · editar</button></span>`
       :`<button class="btn-add-photo" data-id="${m.id}">${ICON.camera} Añadir foto</button>`;
     return `<tr data-id="${m.id}">
-      <td class="model-name">${esc(m.modelo)}</td>
+      <td class="model-name inv-open-product" data-id="${m.id}">${esc(m.modelo)}</td>
       <td style="padding:8px 16px">${fotoCell}</td>
       <td><span class="badge ${cls}">${lbl}</span></td>
       <td>
@@ -538,6 +538,9 @@ function wire(){
   document.querySelectorAll('.photo-edit-btn,.btn-add-photo').forEach(btn=>{
     btn.onclick=e=>{e.stopPropagation();openPhotoEdit(btn.dataset.id)};
   });
+  document.querySelectorAll('.inv-open-product').forEach(td=>{
+    td.onclick=()=>openProductPage(td.closest('tr').dataset.id);
+  });
 
   // Ventas form
   const sf=document.getElementById('saleForm');
@@ -815,6 +818,75 @@ function openEditExp(id,tmp){
     ex.tasa=isBs?tasa:null;ex.gastoUSD=gastoUSD;
     close();save();render();toast('✓ Gasto actualizado');
   };
+}
+
+/* ============ PRODUCT PAGE ============ */
+function openProductPage(id,filterMonth){
+  const it=db.inventory.find(x=>x.id===id);if(!it)return;
+  const fotoUrl=it.foto?gdriveDirect(it.foto):'';
+  const s=+it.stockActual;
+  const cls=s<=0?'stock-out':s<=1?'stock-low':'stock-ok';
+  const lbl=s<=0?'Agotado':s<=1?'Bajo':'OK';
+  const MN=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  const mlabel=ym=>{const[y,m]=ym.split('-');return MN[+m-1]+' '+y.slice(2)};
+  const allSales=(db.sales||[]).filter(x=>x.modelo===it.modelo);
+  const months=[...new Set(allSales.map(x=>(x.fecha||'').slice(0,7)).filter(Boolean))].sort().reverse();
+  const active=filterMonth||null;
+  const filtered=active?allSales.filter(x=>x.fecha&&x.fecha.startsWith(active)):allSales;
+  const byDate={};
+  filtered.forEach(x=>{
+    const d=x.fecha||'';
+    if(!byDate[d])byDate[d]={count:0,ingreso:0,ganancia:0};
+    byDate[d].count++;byDate[d].ingreso+=x.ingresoUSD||0;byDate[d].ganancia+=x.ganancia||0;
+  });
+  let dates=Object.keys(byDate).filter(Boolean).sort().reverse();
+  if(!active&&dates.length>5)dates=dates.slice(0,5);
+  const maxCount=dates.length?Math.max(...dates.map(d=>byDate[d].count)):1;
+  const totalUnits=filtered.length;
+  const totalIngreso=filtered.reduce((a,x)=>a+(x.ingresoUSD||0),0);
+  const totalGanancia=filtered.reduce((a,x)=>a+(x.ganancia||0),0);
+  const pillsHtml=months.length>0?`<div class="month-pills">
+    <button class="month-pill${!active?' on':''}" data-m="">Recientes</button>
+    ${months.map(m=>`<button class="month-pill${m===active?' on':''}" data-m="${m}">${mlabel(m)}</button>`).join('')}
+  </div>`:'';
+  const daysHtml=dates.length>0?`<div class="prod-days-list">${dates.map(d=>`
+    <div class="sales-day-row">
+      <span class="sales-day-date">${fDate(d)}</span>
+      <span class="sales-day-bar-wrap"><span class="sales-day-bar-fill" style="width:${Math.round(byDate[d].count/maxCount*100)}%"></span></span>
+      <span class="sales-day-count">${byDate[d].count} ${byDate[d].count===1?'venta':'ventas'}</span>
+      <span class="sales-day-usd">${fUSD(byDate[d].ingreso)}</span>
+    </div>`).join('')}</div>`:`<div class="empty-inline">${active?'Sin ventas en '+mlabel(active)+'.':'Sin ventas registradas aún.'}</div>`;
+  const summaryHtml=totalUnits>0?`<div class="prod-summary">
+    <span>${totalUnits} ud${totalUnits!==1?'s':''} vendida${totalUnits!==1?'s':''}</span>
+    <span class="pos">${fUSD(totalIngreso)} ingreso</span>
+    <span class="${totalGanancia>=0?'pos':'neg'}">${fUSD(totalGanancia)} ganancia</span>
+  </div>`:'';
+  const periodLabel=active?`en ${mlabel(active)}`:'· últimas 5 fechas';
+  document.getElementById('modal-root').innerHTML=`<div class="modal-back" id="mback"><div class="modal prod-page-modal">
+    <div class="modal-head"><h3>${esc(it.modelo)}</h3><button class="btn-ghost btn" id="mx" style="padding:4px 8px">✕</button></div>
+    <div class="modal-body prod-page-body" style="padding:0">
+      <div class="prod-left">
+        ${fotoUrl?`<div class="prod-photo-wrap"><img class="prod-photo-img" src="${esc(fotoUrl)}" alt="${esc(it.modelo)}" onerror="this.parentElement.style.display='none'" /></div>`:`<div class="prod-photo-ph">${ICON.camera}</div>`}
+        <div class="prod-stats">
+          <div class="prod-stat-row"><span class="prod-stat-lbl">Estado</span><span class="badge ${cls}">${lbl}</span></div>
+          <div class="prod-stat-row"><span class="prod-stat-lbl">Stock actual</span><span class="prod-stat-val">${s} uds.</span></div>
+          <div class="prod-stat-row"><span class="prod-stat-lbl">Costo unit.</span><span class="prod-stat-val">${fUSD(it.costo)}</span></div>
+          <div class="prod-stat-row"><span class="prod-stat-lbl">Precio USD</span><span class="prod-stat-val">${fUSD(it.precioUSD)}</span></div>
+          <div class="prod-stat-row"><span class="prod-stat-lbl">Precio Bs</span><span class="prod-stat-val">${fBs(it.precioBs)}</span></div>
+        </div>
+      </div>
+      <div class="prod-right">
+        <span class="prod-section-title">Ventas ${esc(periodLabel)}</span>
+        ${pillsHtml}
+        ${daysHtml}
+        ${summaryHtml}
+      </div>
+    </div>
+  </div></div>`;
+  const close=closeModal;
+  document.getElementById('mx').onclick=close;
+  document.getElementById('mback').onclick=e=>{if(e.target.id==='mback')close()};
+  document.querySelectorAll('.month-pill').forEach(b=>b.onclick=()=>openProductPage(id,b.dataset.m||null));
 }
 
 /* ============ CSV EXPORT / IMPORT ============ */
