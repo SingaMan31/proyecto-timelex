@@ -161,6 +161,12 @@ input[type="date"]::-webkit-calendar-picker-indicator{
 }
 input[type="time"]::-webkit-calendar-picker-indicator:hover,
 input[type="date"]::-webkit-calendar-picker-indicator:hover{opacity:1}
+/* iOS Safari: el valor de date/time se renderiza centrado dentro de este
+   pseudo-elemento y parece salirse de la caja; lo alineamos a la izquierda
+   como el resto de campos. Este pseudo solo existe en Safari/iOS, así que
+   no afecta el render de escritorio (Chrome usa ::-webkit-datetime-edit). */
+input[type="date"]::-webkit-date-and-time-value,
+input[type="time"]::-webkit-date-and-time-value{text-align:left}
 select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236f7480' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 13px center;padding-right:34px}
 
 /* segmented */
