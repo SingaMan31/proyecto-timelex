@@ -4,10 +4,10 @@ const MES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','se
 function ymKey(iso){return (iso||'').slice(0,7)}
 function ymLabel(ym){const[y,m]=ym.split('-');const l=MES[+m-1]+' '+y;return l.charAt(0).toUpperCase()+l.slice(1)}
 function availableMonths(){
+  // Solo meses con ventas registradas. No se fuerza el mes actual ni se
+  // incluyen meses que solo tengan gastos: si no hubo ventas, no aparece.
   const set=new Set();
   db.sales.forEach(s=>set.add(ymKey(s.fecha)));
-  db.expenses.forEach(e=>set.add(ymKey(e.fecha)));
-  set.add(ymKey(todayISO()));
   return [...set].filter(Boolean).sort();
 }
 function viewDashboard(){

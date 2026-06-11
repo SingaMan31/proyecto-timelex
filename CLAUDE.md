@@ -106,6 +106,16 @@ The listener also checks `snap.metadata.hasPendingWrites` — if true, the snaps
 | `seedDb()` | Returns a fresh default `db` object |
 | `render()` | Re-renders the full UI from current `db`; skips `save()` when `_remoteUpdate` is true |
 
+### Dashboard chart & month filter (`js/dashboard.js`)
+
+`availableMonths()` builds the period filter chips **only from months that have at least one sale**. Months with expenses only, or the current month if empty, do NOT appear. If `dashMonth` no longer exists in the list (e.g. all sales for that month were deleted), it resets to `'total'`.
+
+The "Facturación diaria" bar chart:
+- Shows the last 14 days that had sales (most recent first, left to right).
+- Each `.bar-col` contains a `.bar-stack` which nests `.val` (dollar amount) **above** `.bar` (the filled bar). `.val` must remain inside `.bar-stack` — if moved outside, all labels float to the top of the chart regardless of bar height.
+- `maxF` is computed from all visible days so bar heights are proportional.
+- Scale: `height:120px` max bar height.
+
 ### Edit modals
 
 Each table row in Ventas and Gastos has an edit button (✏️ `ICON.edit`) to the left of the delete button. Clicking it opens a pre-filled modal:
@@ -157,14 +167,23 @@ All styles live in `styles/main.css`. Media query breakpoints:
 
 | Breakpoint | Target |
 |---|---|
+| `max-width: 1024px` | Compact topbar: hide brand subtitle, reduce tab padding/font-size to prevent logo/tab overlap |
 | `max-width: 960px` | Hide ventas sidebar layout |
 | `max-width: 860px` | 2-col KPI grid, compact topbar, single-col forms |
 | `max-width: 768px` | Mobile: two-row topbar (logo+menu button on row 1, tabs on row 2), scrollable tabs, 2×2 KPI grid, scrollable chart, tighter padding |
-| `max-width: 600px` | Product page modal stacks vertically |
+| `max-width: 600px` | Product page modal stacks vertically with unified single scroll |
+
+### Desktop topbar tab centering
+
+On desktop, `nav.tabs` is centered absolutely within `.topbar-in` using `position:absolute; left:50%; top:50%; transform:translate(-50%,-50%)`. This makes centering independent of the logo width. `.topbar-in` has `position:relative` to establish the containing block.
 
 ### Mobile topbar (≤ 768px)
 
-`.topbar-in` uses `flex-wrap: wrap; height: auto; padding-bottom: 10px` so the tabs wrap to a second row. `.tabs` has `order: 3; width: 100%; flex-wrap: nowrap; overflow-x: auto` with scrollbar hidden, placing it below the brand and menu button. The `.spacer` (between tabs and menu button) pushes the menu button to the right on row 1.
+At ≤768px, `nav.tabs` resets to `position:static; transform:none` so it participates in normal flex flow. `.topbar-in` uses `flex-wrap: wrap; height: auto; padding-bottom: 10px` so the tabs wrap to a second row. `.tabs` has `order: 3; width: 100%; flex-wrap: nowrap; overflow-x: auto` with scrollbar hidden, placing it below the brand and menu button. The `.spacer` (between tabs and menu button) pushes the menu button to the right on row 1.
+
+### iOS date/time input fix
+
+`input[type="date"].inp` and `input[type="time"].inp` have `-webkit-appearance:none; appearance:none; min-height:0` to strip Safari's native sizing (which makes them taller than other fields on iOS). The `::-webkit-date-and-time-value` pseudo-element is set to `text-align:left; margin:0`.
 
 ## Application Domain
 
