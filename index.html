@@ -50,6 +50,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 <script src="js/firebase.js"></script>
 <script>
 /* ============ SEED DATA (extraído del Excel original) ============ */
@@ -666,10 +667,21 @@ function openPhotoEdit(id){
     <div class="modal-head"><h3>${cur?'Cambiar foto':'Añadir foto'} · ${esc(it.modelo)}</h3><button class="btn-ghost btn" id="mx" style="padding:4px 8px">✕</button></div>
     <div class="modal-body" style="display:flex;flex-direction:column;gap:16px">
       ${curDirect?`<div style="border-radius:10px;overflow:hidden;background:#0d0e11;text-align:center;max-height:160px;display:flex;align-items:center;justify-content:center"><img id="pePreview" src="${esc(curDirect)}" style="max-height:160px;max-width:100%;object-fit:contain;display:block" /></div>`:''}
-      <div class="field">
-        <label class="lbl">Link de la imagen</label>
-        <input class="inp" id="peInput" type="url" placeholder="Link de Google Drive o URL directa de imagen" value="${esc(cur)}" />
-        <div class="hint">Funciona con Google Drive, Dropbox, Imgur u otras URLs directas de imagen</div>
+      <div class="seg"><button id="peTabBtnUrl" class="on" data-tab="url">Link / URL</button><button id="peTabBtnUpload" data-tab="upload">Subir foto</button></div>
+      <div id="peTabUrl">
+        <div class="field">
+          <label class="lbl">Link de la imagen</label>
+          <input class="inp" id="peInput" type="url" placeholder="Link de Google Drive o URL directa de imagen" value="${esc(cur)}" />
+          <div class="hint">Funciona con Google Drive, Dropbox, Imgur u otras URLs directas de imagen</div>
+        </div>
+      </div>
+      <div id="peTabUpload" style="display:none">
+        <input type="file" id="peFile" accept="image/*" style="display:none" />
+        <div class="upload-zone" id="peDropZone">
+          <div id="peDropInner">${ICON.camera}<div style="margin-top:8px;font-size:13px;color:var(--txt-2)">Arrastra una imagen aquí o <span class="upload-link" id="peBrowse">elige un archivo</span></div><div class="hint" style="margin-top:4px">JPG, PNG, WEBP · máx. 5 MB</div></div>
+          <div id="peProgress" style="display:none"><div class="progress-bar"><div class="progress-fill" id="peProgressFill" style="width:0%"></div></div><div class="hint" style="margin-top:6px;text-align:center" id="peProgressTxt">Subiendo…</div></div>
+          <div id="peDone" style="display:none;text-align:center"><img id="peDoneImg" style="max-height:110px;max-width:100%;object-fit:contain;border-radius:8px" /><div class="hint" style="margin-top:6px">✓ Lista para guardar</div></div>
+        </div>
       </div>
     </div>
     <div class="modal-foot" style="justify-content:space-between">
@@ -684,14 +696,53 @@ function openPhotoEdit(id){
   document.getElementById('mx').onclick=close;
   document.getElementById('mcancel').onclick=close;
   document.getElementById('mback').onclick=e=>{if(e.target.id==='mback')close()};
-  // live preview on input change
+
+  // tab switch
+  let activeTab='url';
+  const switchTab=tab=>{
+    activeTab=tab;
+    document.getElementById('peTabBtnUrl').classList.toggle('on',tab==='url');
+    document.getElementById('peTabBtnUpload').classList.toggle('on',tab==='upload');
+    document.getElementById('peTabUrl').style.display=tab==='url'?'':'none';
+    document.getElementById('peTabUpload').style.display=tab==='upload'?'':'none';
+  };
+  document.getElementById('peTabBtnUrl').onclick=()=>switchTab('url');
+  document.getElementById('peTabBtnUpload').onclick=()=>switchTab('upload');
+
+  // URL tab – live preview
   const inp=document.getElementById('peInput');
   const prev=document.getElementById('pePreview');
   if(inp&&prev)inp.oninput=()=>{const u=gdriveDirect(inp.value.trim());prev.src=u||'';prev.style.display=u?'block':'none'};
+
+  // upload tab
+  let uploadedUrl='';
+  const fileInp=document.getElementById('peFile');
+  const dropZone=document.getElementById('peDropZone');
+  document.getElementById('peBrowse').onclick=e=>{e.stopPropagation();fileInp.click()};
+  dropZone.onclick=()=>fileInp.click();
+  dropZone.ondragover=e=>{e.preventDefault();dropZone.classList.add('drag-over')};
+  dropZone.ondragleave=()=>dropZone.classList.remove('drag-over');
+  dropZone.ondrop=e=>{e.preventDefault();dropZone.classList.remove('drag-over');if(e.dataTransfer.files[0])doUpload(e.dataTransfer.files[0])};
+  fileInp.onchange=()=>{if(fileInp.files[0])doUpload(fileInp.files[0])};
+
+  function doUpload(file){
+    if(!file.type.startsWith('image/')){toast('Solo se permiten imágenes');return}
+    if(file.size>5*1024*1024){toast('La imagen no debe superar 5 MB');return}
+    document.getElementById('peDropInner').style.display='none';
+    document.getElementById('peProgress').style.display='';
+    document.getElementById('peDone').style.display='none';
+    const path='productos/'+it.id+'/'+Date.now()+'_'+file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+    const task=fsStorage.ref(path).put(file);
+    task.on('state_changed',
+      snap=>{const p=Math.round(snap.bytesTransferred/snap.totalBytes*100);document.getElementById('peProgressFill').style.width=p+'%';document.getElementById('peProgressTxt').textContent='Subiendo… '+p+'%'},
+      err=>{toast('Error al subir: '+err.message);document.getElementById('peDropInner').style.display='';document.getElementById('peProgress').style.display='none'},
+      async()=>{uploadedUrl=await task.snapshot.ref.getDownloadURL();document.getElementById('peProgress').style.display='none';document.getElementById('peDone').style.display='';document.getElementById('peDoneImg').src=uploadedUrl;if(prev){prev.src=uploadedUrl;prev.style.display='block'}}
+    );
+  }
+
   document.getElementById('peSave').onclick=()=>{
-    const val=(inp?inp.value:'').trim();
-    it.foto=val;save();close();render();
-    toast(val?'✓ Foto guardada':'Foto eliminada');
+    if(activeTab==='url'){const val=(inp?inp.value:'').trim();it.foto=val;save();close();render();toast(val?'✓ Foto guardada':'Foto eliminada')}
+    else{if(!uploadedUrl){toast('Elige una imagen o espera a que termine la subida');return}it.foto=uploadedUrl;save();close();render();toast('✓ Foto guardada')}
   };
   const rem=document.getElementById('peRemove');
   if(rem)rem.onclick=()=>{it.foto='';save();close();render();toast('Foto eliminada')};
@@ -719,7 +770,19 @@ function openAddModel(){
       <div class="field"><label class="lbl">Costo unitario (USD)</label><input class="inp" type="number" step="any" name="costo" placeholder="0.00" /></div>
       <div class="field"><label class="lbl">Precio USD</label><input class="inp" type="number" step="any" name="precioUSD" placeholder="0.00" /></div>
       <div class="field"><label class="lbl">Precio Bs (ref.)</label><input class="inp" type="number" step="any" name="precioBs" placeholder="0" /></div>
-      <div class="field full"><label class="lbl">Link de la imagen <span class="muted" style="text-transform:none;letter-spacing:0">(opcional)</span></label><input class="inp" type="url" name="foto" placeholder="Pega aquí el link de Google Drive o URL de imagen" /><div class="hint">Funciona con links de Google Drive, Dropbox, Imgur u otras URLs directas de imagen</div></div>
+      <div class="field full">
+        <label class="lbl">Foto del modelo <span class="muted" style="text-transform:none;letter-spacing:0">(opcional)</span></label>
+        <div class="seg" style="margin-bottom:10px"><button id="amTabBtnUrl" class="on" data-tab="url">Link / URL</button><button id="amTabBtnUpload" data-tab="upload">Subir foto</button></div>
+        <div id="amTabUrl"><input class="inp" type="url" name="foto" id="amFotoInput" placeholder="Pega aquí el link de Google Drive o URL de imagen" /><div class="hint">Funciona con links de Google Drive, Dropbox, Imgur u otras URLs directas de imagen</div></div>
+        <div id="amTabUpload" style="display:none">
+          <input type="file" id="amFile" accept="image/*" style="display:none" />
+          <div class="upload-zone" id="amDropZone">
+            <div id="amDropInner">${ICON.camera}<div style="margin-top:8px;font-size:13px;color:var(--txt-2)">Arrastra una imagen aquí o <span class="upload-link" id="amBrowse">elige un archivo</span></div><div class="hint" style="margin-top:4px">JPG, PNG, WEBP · máx. 5 MB</div></div>
+            <div id="amProgress" style="display:none"><div class="progress-bar"><div class="progress-fill" id="amProgressFill" style="width:0%"></div></div><div class="hint" style="margin-top:6px;text-align:center" id="amProgressTxt">Subiendo…</div></div>
+            <div id="amDone" style="display:none;text-align:center"><img id="amDoneImg" style="max-height:110px;max-width:100%;object-fit:contain;border-radius:8px" /><div class="hint" style="margin-top:6px">✓ Lista para guardar</div></div>
+          </div>
+        </div>
+      </div>
     </div></form></div>
     <div class="modal-foot"><button class="btn btn-ghost" id="mcancel">Cancelar</button><button class="btn btn-gold" id="msave">Guardar modelo</button></div>
   </div></div>`;
@@ -727,10 +790,51 @@ function openAddModel(){
   document.getElementById('mx').onclick=close;
   document.getElementById('mcancel').onclick=close;
   document.getElementById('mback').onclick=e=>{if(e.target.id==='mback')close()};
+
+  // photo tab switch
+  let amPhotoTab='url';
+  let amFotoUrl='';
+  const amSwitch=tab=>{
+    amPhotoTab=tab;
+    document.getElementById('amTabBtnUrl').classList.toggle('on',tab==='url');
+    document.getElementById('amTabBtnUpload').classList.toggle('on',tab==='upload');
+    document.getElementById('amTabUrl').style.display=tab==='url'?'':'none';
+    document.getElementById('amTabUpload').style.display=tab==='upload'?'':'none';
+  };
+  document.getElementById('amTabBtnUrl').onclick=()=>amSwitch('url');
+  document.getElementById('amTabBtnUpload').onclick=()=>amSwitch('upload');
+
+  const amFileInp=document.getElementById('amFile');
+  const amDropZone=document.getElementById('amDropZone');
+  document.getElementById('amBrowse').onclick=e=>{e.stopPropagation();amFileInp.click()};
+  amDropZone.onclick=()=>amFileInp.click();
+  amDropZone.ondragover=e=>{e.preventDefault();amDropZone.classList.add('drag-over')};
+  amDropZone.ondragleave=()=>amDropZone.classList.remove('drag-over');
+  amDropZone.ondrop=e=>{e.preventDefault();amDropZone.classList.remove('drag-over');if(e.dataTransfer.files[0])amDoUpload(e.dataTransfer.files[0])};
+  amFileInp.onchange=()=>{if(amFileInp.files[0])amDoUpload(amFileInp.files[0])};
+
+  function amDoUpload(file){
+    if(!file.type.startsWith('image/')){toast('Solo se permiten imágenes');return}
+    if(file.size>5*1024*1024){toast('La imagen no debe superar 5 MB');return}
+    document.getElementById('amDropInner').style.display='none';
+    document.getElementById('amProgress').style.display='';
+    document.getElementById('amDone').style.display='none';
+    const tmpId='tmp_'+Date.now();
+    const path='productos/'+tmpId+'/'+Date.now()+'_'+file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+    const task=fsStorage.ref(path).put(file);
+    task.on('state_changed',
+      snap=>{const p=Math.round(snap.bytesTransferred/snap.totalBytes*100);document.getElementById('amProgressFill').style.width=p+'%';document.getElementById('amProgressTxt').textContent='Subiendo… '+p+'%'},
+      err=>{toast('Error al subir: '+err.message);document.getElementById('amDropInner').style.display='';document.getElementById('amProgress').style.display='none'},
+      async()=>{amFotoUrl=await task.snapshot.ref.getDownloadURL();document.getElementById('amProgress').style.display='none';document.getElementById('amDone').style.display='';document.getElementById('amDoneImg').src=amFotoUrl}
+    );
+  }
+
   document.getElementById('msave').onclick=()=>{
     const f=document.getElementById('amForm');const d=Object.fromEntries(new FormData(f));
     if(!d.modelo.trim()){toast('Escribe el nombre del modelo');return}
-    db.inventory.push({id:uid(),modelo:d.modelo.trim(),costo:parseFloat(d.costo)||0,precioUSD:parseFloat(d.precioUSD)||0,precioBs:parseFloat(d.precioBs)||0,cantidad:parseInt(d.stockActual)||0,stockActual:parseInt(d.stockActual)||0,foto:(d.foto||'').trim()});
+    const foto=amPhotoTab==='upload'?amFotoUrl:(d.foto||'').trim();
+    if(amPhotoTab==='upload'&&!amFotoUrl){toast('Espera a que termine la subida o cambia a "Link / URL"');return}
+    db.inventory.push({id:uid(),modelo:d.modelo.trim(),costo:parseFloat(d.costo)||0,precioUSD:parseFloat(d.precioUSD)||0,precioBs:parseFloat(d.precioBs)||0,cantidad:parseInt(d.stockActual)||0,stockActual:parseInt(d.stockActual)||0,foto:foto});
     close();render();toast('✓ Modelo agregado: '+d.modelo.trim());
   };
   setTimeout(()=>document.querySelector('#amForm [name=modelo]').focus(),50);

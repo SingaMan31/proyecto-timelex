@@ -76,6 +76,19 @@ All application state lives in a single `db` object. `save()` writes it to Fires
 | `seedDb()` | Returns a fresh default `db` object |
 | `render()` | Re-renders the full UI from current `db` |
 
+### Edit modals
+
+Each table row in Ventas and Gastos has an edit button (✏️ `ICON.edit`) to the left of the delete button. Clicking it opens a pre-filled modal:
+
+| Function | Opens modal for | Fields |
+|---|---|---|
+| `openEditSale(id, tmp?)` | A sale row | `fecha`, `modelo` (dropdown), `tipoPago` (seg), `monto`, `tasa`, `nota` |
+| `openEditExp(id, tmp?)` | An expense row | `fecha`, `concepto`, `moneda` (seg), `monto`, `tasa` |
+
+Both functions accept an optional `tmp` snapshot used when the seg button (tipoPago / moneda) is toggled — the modal re-renders itself preserving the current field values. On save, `ingresoUSD`/`gastoUSD` and `ganancia` are recalculated, then `save()` and `render()` are called. `deliveryUSD` on sales is preserved as-is.
+
+The edit button uses CSS class `act-edit-sale` / `act-edit-exp` and is wired in `wire()`.
+
 ## CSS & Responsive
 
 All styles live in `styles/main.css`. Media query breakpoints:
@@ -84,7 +97,11 @@ All styles live in `styles/main.css`. Media query breakpoints:
 |---|---|
 | `max-width: 960px` | Hide ventas sidebar layout |
 | `max-width: 860px` | 2-col KPI grid, compact topbar, single-col forms |
-| `max-width: 768px` | Mobile: scrollable tabs, 2×2 KPI grid, scrollable chart, tighter padding |
+| `max-width: 768px` | Mobile: two-row topbar (logo+menu button on row 1, tabs on row 2), scrollable tabs, 2×2 KPI grid, scrollable chart, tighter padding |
+
+### Mobile topbar (≤ 768px)
+
+`.topbar-in` uses `flex-wrap: wrap; height: auto; padding-bottom: 10px` so the tabs wrap to a second row. `.tabs` has `order: 3; width: 100%; flex-wrap: nowrap; overflow-x: auto` with scrollbar hidden, placing it below the brand and menu button. The `.spacer` (between tabs and menu button) pushes the menu button to the right on row 1.
 
 ## Application Domain
 
