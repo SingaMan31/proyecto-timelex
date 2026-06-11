@@ -205,6 +205,20 @@ On desktop, `nav.tabs` is centered absolutely within `.topbar-in` using `positio
 
 At ≤768px, `nav.tabs` resets to `position:static; transform:none` so it participates in normal flex flow. `.topbar-in` uses `flex-wrap: wrap; height: auto; padding-bottom: 10px` so the tabs wrap to a second row. `.tabs` has `order: 3; width: 100%; flex-wrap: nowrap; overflow-x: auto` with scrollbar hidden, placing it below the brand and menu button. The `.spacer` (between tabs and menu button) pushes the menu button to the right on row 1.
 
+### Modal scroll
+
+`.modal` uses `max-height:calc(100vh - 40px); display:flex; flex-direction:column` so tall forms don't overflow the viewport. `.modal-head` and `.modal-foot` have `flex:none`; `.modal-body` has `overflow-y:auto; min-height:0; min-width:0`. This pattern is required for any modal with a scrollable body.
+
+**iOS horizontal overflow fix:** `.modal-back` is a `display:grid; place-items:center` container. A grid/flex child keeps a `min-width:auto` floor equal to its min-content, so if any descendant can't shrink (a wide table, or an unbreakable string like a 19-digit `ordenCompra` or tracking number), the **whole modal** grows past the viewport on real iOS Safari — even though desktop devtools phone-emulation renders it fine. The fix: `.modal` has `min-width:0` (lets `width:100%` truly cap at the track), `.modal-back` has `overflow:hidden` (belt-and-suspenders so nothing spills past the backdrop), and `.prod-stat-val` has `overflow-wrap:anywhere` so long IDs/tracking numbers wrap instead of forcing width.
+
+### Nav tab text wrapping
+
+`nav.tabs button` has `white-space:nowrap` to prevent multi-word labels like "Gastos Operativos" from breaking to two lines.
+
+### Mercancía detail table (`.lote-det`) mobile override
+
+The global `table{min-width:640px}` rule (line ~98 in main.css) would overflow the detail modal on mobile. The table wrapper in `openPurchasePage` uses class `table-wrap lote-det`. `.lote-det table{min-width:0}` overrides the global rule. At `max-width:600px`, columns 3 (Costo unit.) and 5 (Subtotal) are hidden with `display:none` — only Modelo, Cant., and Costo real/ud remain.
+
 ### iOS date/time input fix
 
 `input[type="date"].inp` and `input[type="time"].inp` have `-webkit-appearance:none; appearance:none; min-height:0` to strip Safari's native sizing (which makes them taller than other fields on iOS). The `::-webkit-date-and-time-value` pseudo-element is set to `text-align:left; margin:0`.
