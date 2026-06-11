@@ -12,10 +12,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## File Structure
 
 ```
-index.html        — Main entry point (HTML + vanilla JS application logic)
-styles/main.css   — All application CSS, including responsive media queries
-js/firebase.js    — Firebase initialization and Firestore connection
+index.html           — Main entry point (HTML shell + ordered <script> tags)
+styles/main.css      — All application CSS, including responsive media queries
+js/firebase.js       — Firebase initialization and Firestore connection
+js/helpers.js        — Formatters (fUSD, fBs, fDate…), esc, toast, gdriveDirect, ICON
+js/data.js           — SEED data, state (db, sync flags), initData, save, seedDb, resetDb, wipeDb
+js/modals.js         — closeModal, confirmModal
+js/dashboard.js      — viewDashboard + month helper functions
+js/inventario.js     — viewInventario, stock controls, photo handling, openAddModel, openProductPage
+js/ventas.js         — viewVentas, saleCalc, submitSale, openEditSale
+js/gastos.js         — viewGastos, expCalc, submitExp, openEditExp
+js/envios.js         — viewEnvios, submitShip, waLink
+js/router.js         — render, wire, tab navigation (accesses all view* and submit* functions)
+js/csv.js            — exportSection, parseCSVImport, openExportModal, openImportModal, data menu
+js/main.js           — Escape keydown listener + initData() call (always loaded last)
 ```
+
+All JS files share the same global scope — there are no ES modules. `db`, `fsDb`, and all functions are global variables accessible across files. The load order in `index.html` is the dependency order.
 
 ## Deploying Changes
 
@@ -47,7 +60,7 @@ JavaScript must be enabled. An active internet connection is required to load th
 2. `firebase-app-compat.js` (CDN, v9.22.0)
 3. `firebase-firestore-compat.js` (CDN, v9.22.0)
 4. `js/firebase.js` — calls `firebase.initializeApp()` and exposes `fsDb` globally
-5. Main inline `<script>` — application logic, ends with `initData()`
+5. `js/helpers.js` → `js/data.js` → `js/modals.js` → `js/dashboard.js` → `js/inventario.js` → `js/ventas.js` → `js/gastos.js` → `js/envios.js` → `js/router.js` → `js/csv.js` → `js/main.js`
 
 ### Data persistence
 
@@ -61,7 +74,7 @@ All application state lives in a single `db` object. `save()` writes it to Fires
 
 ### Startup flow (`initData`)
 
-`initData()` is `async` and is the sole entry point called at the end of the inline script:
+`initData()` is `async` and is the sole entry point called at the end of `js/main.js`:
 
 1. Fetches `timelex/datos` from Firestore.
 2. If the document exists, loads it into `db` and backfills any missing arrays (`inventory`, `sales`, `expenses`, `shipments`).
