@@ -30,7 +30,7 @@ function viewDashboard(){
   sales.forEach(s=>{const k=s.fecha;(map[k]=map[k]||{u:0,f:0,g:0}),map[k].u++,map[k].f+=s.ingresoUSD,map[k].g+=s.ganancia-(+s.deliveryUSD||0)});
   const days=Object.keys(map).sort();
   const maxF=Math.max(1,...days.map(d=>map[d].f));
-  const recent=days.slice(-14);
+  const recent=days.slice(-14).reverse();
   const bars=recent.map(d=>{
     const h=Math.round(map[d].f/maxF*120);
     return `<div class="bar-col"><div class="bar-stack"><div class="val">$${Math.round(map[d].f)}</div><div class="bar" style="height:${h}px"></div></div><div class="lbl">${fDate(d).slice(0,5)}</div></div>`;
