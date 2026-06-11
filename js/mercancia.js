@@ -341,7 +341,7 @@ function openPurchasePage(id){
         ${p.factura?`<div class="prod-stat-row"><span class="prod-stat-lbl">Factura</span><span class="prod-stat-val">${p.facturaLink?`<a href="${esc(p.facturaLink)}" target="_blank" rel="noopener" style="color:var(--gold);text-decoration:none">${esc(p.factura)} ↗</a>`:esc(p.factura)}</span></div>`:(p.facturaLink?`<div class="prod-stat-row"><span class="prod-stat-lbl">Factura</span><span class="prod-stat-val"><a href="${esc(p.facturaLink)}" target="_blank" rel="noopener" style="color:var(--gold);text-decoration:none">Ver PDF ↗</a></span></div>`:'')}
         ${p.nota?`<div class="prod-stat-row"><span class="prod-stat-lbl">Nota</span><span class="prod-stat-val">${esc(p.nota)}</span></div>`:''}
       </div>
-      ${itemRows?`<div class="table-wrap" style="margin-bottom:14px"><table>
+      ${itemRows?`<div class="table-wrap lote-det" style="margin-bottom:14px"><table>
         <thead><tr><th>Modelo</th><th class="num">Cant.</th><th class="num">Costo unit.</th><th class="num">Costo real/ud</th><th class="num">Subtotal</th></tr></thead>
         <tbody>${itemRows}</tbody>
         <tfoot><tr><td style="font-weight:700">Total</td><td class="num" style="font-weight:700">${units}</td><td></td><td></td><td class="num" style="font-weight:700">${fUSD(p.costoRelojes)}</td></tr></tfoot>
