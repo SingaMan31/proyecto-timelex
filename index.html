@@ -110,7 +110,11 @@ function seedDb(){
 function save(){
   _lastSavedAt=Date.now();
   fsDb.collection('timelex').doc('datos').set(db)
-    .catch(e=>{console.error('Error guardando',e);toast('⚠ Error al guardar. Revisa tu conexión.')});
+    .catch(e=>{
+      console.error('Error guardando',e);
+      if(e.code==='permission-denied')toast('⚠ Reglas de Firestore vencidas — actualízalas en Firebase Console');
+      else toast('⚠ Error al guardar ('+( e.code||e.message||'sin conexión')+')');
+    });
 }
 function resetDb(){db=seedDb();save();render()}
 function wipeDb(){db={inventory:[],sales:[],expenses:[],shipments:[]};save();render()}
