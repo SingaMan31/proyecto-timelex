@@ -58,6 +58,8 @@ const SEED = {"models":[{"modelo":"613 SL WH S","costo":14.5,"precioUSD":25,"pre
 /* ============ STATE & PERSISTENCE ============ */
 const LS_KEY='timelex_db_v1';
 let db={};
+let _remoteUpdate=false;
+let _lastSavedAt=0;
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
 async function initData(){
   try{
@@ -78,6 +80,23 @@ async function initData(){
     db = raw ? JSON.parse(raw) : seedDb();
   }
   render();
+  // Listener en tiempo real para sincronizar entre dispositivos
+  let _firstFire=true;
+  fsDb.collection('timelex').doc('datos').onSnapshot(snap=>{
+    if(_firstFire){_firstFire=false;return;}
+    if(!snap.exists||snap.metadata.hasPendingWrites)return;
+    if(Date.now()-_lastSavedAt<4000)return; // ignora eco de nuestros propios saves
+    const d=snap.data();if(!d)return;
+    _remoteUpdate=true;
+    db=d;
+    if(!db.inventory)db.inventory=[];
+    if(!db.sales)db.sales=[];
+    if(!db.expenses)db.expenses=[];
+    if(!db.shipments)db.shipments=[];
+    render();
+    _remoteUpdate=false;
+    toast('Datos sincronizados');
+  },()=>{});
 }
 function seedDb(){
   const d={
@@ -89,8 +108,9 @@ function seedDb(){
   return d;
 }
 function save(){
+  _lastSavedAt=Date.now();
   fsDb.collection('timelex').doc('datos').set(db)
-    .catch(e => console.error('Error guardando', e));
+    .catch(e=>{console.error('Error guardando',e);toast('⚠ Error al guardar. Revisa tu conexión.')});
 }
 function resetDb(){db=seedDb();save();render()}
 function wipeDb(){db={inventory:[],sales:[],expenses:[],shipments:[]};save();render()}
@@ -135,7 +155,7 @@ const tabsEl=document.getElementById('tabs');
 tabsEl.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;view=b.dataset.view;[...tabsEl.children].forEach(x=>x.classList.toggle('active',x===b));render()});
 
 function render(){
-  save();
+  if(!_remoteUpdate)save();
   const app=document.getElementById('app');
   if(view==='dashboard')app.innerHTML=viewDashboard();
   else if(view==='inventario')app.innerHTML=viewInventario();
