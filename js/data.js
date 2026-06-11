@@ -16,6 +16,7 @@ async function initData(){
       if(!db.sales) db.sales = [];
       if(!db.expenses) db.expenses = [];
       if(!db.shipments) db.shipments = [];
+      if(!db.purchases) db.purchases = [];
     } else {
       db = seedDb();
       await fsDb.collection('timelex').doc('datos').set(db);
@@ -39,6 +40,7 @@ async function initData(){
     if(!db.sales)db.sales=[];
     if(!db.expenses)db.expenses=[];
     if(!db.shipments)db.shipments=[];
+    if(!db.purchases)db.purchases=[];
     render();
     _remoteUpdate=false;
     toast('Datos sincronizados');
@@ -49,7 +51,8 @@ function seedDb(){
     inventory:SEED.models.map(m=>({id:uid(),...m})),
     sales:SEED.sales.map(s=>({id:uid(),...s})),
     expenses:SEED.expenses.map(e=>({id:uid(),...e})),
-    shipments:[]
+    shipments:[],
+    purchases:[]
   };
   return d;
 }
@@ -63,4 +66,4 @@ function save(){
     });
 }
 function resetDb(){db=seedDb();save();render()}
-function wipeDb(){db={inventory:[],sales:[],expenses:[],shipments:[]};save();render()}
+function wipeDb(){db={inventory:[],sales:[],expenses:[],shipments:[],purchases:[]};save();render()}

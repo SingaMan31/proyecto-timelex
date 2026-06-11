@@ -23,6 +23,7 @@ js/inventario.js     — viewInventario, stock controls, photo handling, openAdd
 js/ventas.js         — viewVentas, saleCalc, submitSale, openEditSale
 js/gastos.js         — viewGastos, expCalc, submitExp, openEditExp
 js/envios.js         — viewEnvios, submitShip, waLink
+js/mercancia.js      — viewMercancia, lotes importados: formulario modal, parser PDF (pdf.js lazy CDN), pasarAInventario
 js/router.js         — render, wire, tab navigation (accesses all view* and submit* functions)
 js/csv.js            — exportSection, parseCSVImport, openExportModal, openImportModal, data menu
 js/main.js           — Escape keydown listener + initData() call (always loaded last)
@@ -60,7 +61,9 @@ JavaScript must be enabled. An active internet connection is required to load th
 2. `firebase-app-compat.js` (CDN, v9.22.0)
 3. `firebase-firestore-compat.js` (CDN, v9.22.0)
 4. `js/firebase.js` — calls `firebase.initializeApp()` and exposes `fsDb` globally
-5. `js/helpers.js` → `js/data.js` → `js/modals.js` → `js/dashboard.js` → `js/inventario.js` → `js/ventas.js` → `js/gastos.js` → `js/envios.js` → `js/router.js` → `js/csv.js` → `js/main.js`
+5. `js/helpers.js` → `js/data.js` → `js/modals.js` → `js/dashboard.js` → `js/inventario.js` → `js/ventas.js` → `js/gastos.js` → `js/envios.js` → `js/mercancia.js` → `js/router.js` → `js/csv.js` → `js/main.js`
+
+`pdf.js` (pdfjs-dist v3.11.174) is NOT in the initial load — `js/mercancia.js` lazy-loads it from cdnjs the first time the user clicks "Detectar modelos de la factura (PDF)".
 
 ### Data persistence
 
@@ -77,7 +80,7 @@ All application state lives in a single `db` object. `save()` writes it to Fires
 `initData()` is `async` and is the sole entry point called at the end of `js/main.js`:
 
 1. Fetches `timelex/datos` from Firestore.
-2. If the document exists, loads it into `db` and backfills any missing arrays (`inventory`, `sales`, `expenses`, `shipments`).
+2. If the document exists, loads it into `db` and backfills any missing arrays (`inventory`, `sales`, `expenses`, `shipments`, `purchases`).
 3. If the document does not exist, seeds `db` with default data and writes it to Firestore.
 4. On any Firestore error, falls back to `localStorage` (key: `timelex_db_v1`) or `seedDb()`.
 5. Calls `render()` once data is ready.
@@ -141,6 +144,27 @@ Clicking a model name cell in the Inventario table opens a product detail modal.
 The `filterMonth` parameter is a `"YYYY-MM"` string or `null` (all time). When null, the view defaults to the last 5 dates that had sales. Month pills re-call `openProductPage(id, m)` to re-render with the selected filter.
 
 CSS classes: `.prod-page-modal`, `.prod-left`, `.prod-right`, `.prod-photo-wrap`, `.prod-photo-img`, `.prod-photo-ph`, `.prod-stats`, `.prod-stat-row`, `.month-pills`, `.month-pill`, `.month-pill.on`, `.prod-days-list`, `.sales-day-row`, `.prod-summary`. Responsive: stacks vertically at `max-width: 600px`.
+
+### Mercancía (import batches, `js/mercancia.js`)
+
+Last tab in the nav (`view='mercancia'`). Tracks batches of merchandise imported from China, stored in `db.purchases`:
+
+```js
+{ id, fecha, proveedor, ordenCompra, factura, facturaLink,
+  items:[{modelo, cantidad, costo}],          // watches only (what goes to inventory)
+  costoRelojes, costoExtras, comision,        // extras = boxes + tools (cost, NOT inventory)
+  tramo1:{tracking,trackingUrl,costo,estatus}, // China→USA leg
+  tramo2:{tracking,trackingUrl,costo,estatus}, // USA→Venezuela leg
+  nota, pasadoInventario }
+```
+
+- **Total real cost** is always derived: `costoRelojes + costoExtras + comision + tramo1.costo + tramo2.costo` (`purchaseTotal()`); never stored.
+- Tramo estatus values: `pendiente` ("No recibido") / `proceso` ("En tránsito") / `entregado` ("Recibido") — `PST_LABEL` / `PST_ORDER`. Default is `pendiente` (order placed but not yet shipped/arrived).
+- Batch list renders as cards reusing Envíos CSS (`.ship-card` + `.lote-*` classes). Card click → `openPurchasePage(id)` detail modal. `wireMercancia()` is called from `wire()` in router.js.
+- **Landed cost proration** (`landedExtraPerUnit(p)`): `(costoExtras + comision + tramo1.costo + tramo2.costo) / total watch units`. Shown live in the form, in the detail modal breakdown, and as a "Costo real/ud" column in the detail items table.
+- **`pasarAInventario(id)`** (button in detail modal): per item, case-insensitive match against `db.inventory` by `modelo`; existing models get `stockActual`/`cantidad` increased, new models are created. In both cases the model's `costo` is set to the **landed cost**: `item.costo + landedExtraPerUnit(p)` (rounded to 2 decimals). Sets `pasadoInventario:true` so it can't run twice.
+- **CSV export** (`exportSection('mercancia')` in `js/csv.js`, button in the export modal): one row **per line item** (model), with lote metadata repeated and the landed cost columns (`costoUnit`, `prorrateoUnit`, `costoRealUnit`). Lotes with no items emit a single summary row. Fully client-side (Blob download), no backend.
+- **PDF parser** (`parseInvoicePDF`): calibrated against the supplier's quotation format (Shenzhen South America Watch Co. — columns `No. | Code | Photo | Remark | Qty | Price | Amount`). Algorithm: group text items into lines by Y coord (tolerance 3); lines ending in 3 numeric tokens whose first token is an integer are **anchors** (real table rows); orphan lines within 15 Y-units are absorbed into the nearest anchor (handles multi-line cells like "2597 (quartz watch)" or "POEDAGAR box"); anchor text is rebuilt sorting by x-bucket (`round(x/30)`) then y desc. Rows containing `box`/`tools` → `costoExtras`; `shipping` → `tramo1.costo`; `in total` → shown for verification. Watch names are abbreviated via `MODEL_ABBR` dict (`613 Silver White` → `613 SL WH S`); the items table is always user-editable as the safety net. Verified to match the real invoice exactly ($694.82).
 
 ## Firestore Security Rules
 

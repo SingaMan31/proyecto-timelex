@@ -229,12 +229,12 @@ select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns
 
 /* ===== Modal ===== */
 .modal-back{position:fixed;inset:0;background:rgba(8,9,11,.62);backdrop-filter:blur(3px);z-index:80;display:grid;place-items:center;padding:20px;animation:fade .2s ease both}
-.modal{width:100%;max-width:520px;background:var(--bg-2);border:1px solid var(--line);border-radius:18px;box-shadow:0 30px 70px -20px rgba(0,0,0,.7);animation:pop .24s cubic-bezier(.2,.9,.3,1.1) both}
+.modal{width:100%;max-width:520px;max-height:calc(100vh - 40px);display:flex;flex-direction:column;background:var(--bg-2);border:1px solid var(--line);border-radius:18px;box-shadow:0 30px 70px -20px rgba(0,0,0,.7);animation:pop .24s cubic-bezier(.2,.9,.3,1.1) both}
 @keyframes pop{from{opacity:0;transform:scale(.96) translateY(8px)}to{opacity:1;transform:none}}
-.modal-head{display:flex;align-items:center;justify-content:space-between;padding:20px 22px;border-bottom:1px solid var(--line-soft)}
+.modal-head{flex:none;display:flex;align-items:center;justify-content:space-between;padding:20px 22px;border-bottom:1px solid var(--line-soft)}
 .modal-head h3{margin:0;font-size:17px;font-weight:700}
-.modal-body{padding:22px}
-.modal-foot{display:flex;justify-content:flex-end;gap:10px;padding:16px 22px;border-top:1px solid var(--line-soft)}
+.modal-body{padding:22px;overflow-y:auto;min-height:0}
+.modal-foot{flex:none;display:flex;justify-content:flex-end;gap:10px;padding:16px 22px;border-top:1px solid var(--line-soft)}
 
 /* toast */
 #toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface-2);border:1px solid var(--line);color:var(--txt);padding:12px 20px;border-radius:12px;font-size:13.5px;font-weight:600;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:.3s;z-index:120;display:flex;align-items:center;gap:10px}
@@ -425,4 +425,25 @@ td.inv-open-product:hover{color:var(--gold)}
   .prod-right{padding:16px;overflow-y:visible;flex:none}
   .sales-day-row{grid-template-columns:80px 1fr 70px}
   .sales-day-usd{display:none}
+}
+
+/* ============ MERCANCIA (lotes importados) ============ */
+.lote-card{cursor:pointer}
+.lote-kpis{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.lote-kpis span:first-child{color:var(--txt-2);font-size:13px}
+.lote-cost{font-size:20px;font-weight:750;font-variant-numeric:tabular-nums}
+.lote-tramo-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.lote-tramo-lbl{font-size:11px;color:var(--txt-3);text-transform:uppercase;letter-spacing:.05em;font-weight:650;min-width:118px}
+.lote-tramo-btns{display:flex;gap:6px;margin-left:auto}
+.lote-tramo-box{margin-top:14px;border:1px solid var(--line-soft);border-radius:var(--radius);padding:14px;background:var(--surface-2)}
+.lote-tramo-head{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--txt-2);margin-bottom:10px}
+.pdf-drop{margin-top:14px;border:1px dashed var(--line);border-radius:var(--radius);padding:12px;display:flex;flex-direction:column;gap:6px}
+.lote-items{display:flex;flex-direction:column;gap:6px}
+.lote-item-row{display:grid;grid-template-columns:1fr 76px 96px 32px;gap:6px;align-items:center}
+.lote-item-head{font-size:10.5px;color:var(--txt-3);text-transform:uppercase;letter-spacing:.06em;font-weight:650;padding:0 2px}
+.lote-item-row .row-action{justify-self:center}
+@media (max-width:600px){
+  .lote-item-row{grid-template-columns:1fr 60px 80px 28px}
+  .lote-tramo-lbl{min-width:100%}
+  .lote-tramo-btns{margin-left:0}
 }

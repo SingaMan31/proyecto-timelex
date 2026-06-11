@@ -11,6 +11,7 @@ function render(){
   else if(view==='ventas')app.innerHTML=viewVentas();
   else if(view==='gastos')app.innerHTML=viewGastos();
   else if(view==='envios')app.innerHTML=viewEnvios();
+  else if(view==='mercancia')app.innerHTML=viewMercancia();
   wire();
 }
 
@@ -91,6 +92,8 @@ function wire(){
   document.querySelectorAll('.act-del-ship').forEach(b=>b.onclick=()=>{
     const id=b.closest('.ship-card').dataset.id;
     confirmModal('Eliminar envío','¿Eliminar este envío de la lista?',()=>{db.shipments=db.shipments.filter(x=>x.id!==id);renderKeep('envios');save();toast('Envío eliminado')})});
+  // Mercancía
+  wireMercancia();
   document.querySelectorAll('.act-edit-sale').forEach(b=>b.onclick=()=>{const id=b.closest('tr').dataset.id;openEditSale(id)});
   document.querySelectorAll('.act-del-sale').forEach(b=>b.onclick=()=>{
     const id=b.closest('tr').dataset.id;const s=db.sales.find(x=>x.id===id);
@@ -110,4 +113,4 @@ function wire(){
   });
 }
 
-function renderKeep(v){const app=document.getElementById('app');app.innerHTML=(v==='ventas'?viewVentas():v==='gastos'?viewGastos():viewEnvios());wire()}
+function renderKeep(v){const app=document.getElementById('app');app.innerHTML=(v==='ventas'?viewVentas():v==='gastos'?viewGastos():v==='mercancia'?viewMercancia():viewEnvios());wire()}

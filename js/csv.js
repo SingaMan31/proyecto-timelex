@@ -14,6 +14,23 @@ function exportSection(section){
     headers=['modelo','costo','precioUSD','precioBs','stockActual'];
     rows=(db.inventory||[]).map(i=>[i.modelo,i.costo,i.precioUSD,i.precioBs,i.stockActual]);
     filename='timelex_inventario.csv';
+  }else if(section==='mercancia'){
+    headers=['fecha','factura','proveedor','modelo','cantidad','costoUnit','prorrateoUnit','costoRealUnit','subtotal','envioChinaEEUU','envioEEUUVenezuela','cajasHerramientas','comision','totalLote','tramo1','tramo2','enInventario'];
+    rows=[];
+    (db.purchases||[]).forEach(p=>{
+      const perUnit=typeof landedExtraPerUnit==='function'?landedExtraPerUnit(p):0;
+      const meta=[p.fecha||'',p.factura||'',p.proveedor||''];
+      const t1=+((p.tramo1&&p.tramo1.costo)||0),t2=+((p.tramo2&&p.tramo2.costo)||0);
+      const loteCols=[+t1.toFixed(2),+t2.toFixed(2),+(p.costoExtras||0).toFixed(2),+(p.comision||0).toFixed(2),+purchaseTotal(p).toFixed(2),PST_LABEL[p.tramo1&&p.tramo1.estatus]||'No recibido',PST_LABEL[p.tramo2&&p.tramo2.estatus]||'No recibido',p.pasadoInventario?'Sí':'No'];
+      const items=(p.items||[]);
+      if(!items.length){
+        rows.push([...meta,'','','','','',...loteCols]);
+      }else items.forEach(i=>{
+        const cu=+i.costo||0,cant=+i.cantidad||0;
+        rows.push([...meta,i.modelo||'',cant,+cu.toFixed(2),+perUnit.toFixed(2),+(cu+perUnit).toFixed(2),+(cu*cant).toFixed(2),...loteCols]);
+      });
+    });
+    filename='timelex_mercancia.csv';
   }else{
     headers=['fecha','cliente','modelo','monto','estado','nota'];
     rows=(db.shipments||[]).map(s=>[s.fecha||'',s.cliente||'',s.modelo||'',s.monto||'',s.estado||'',s.nota||'']);
@@ -89,6 +106,7 @@ function openExportModal(){
       <button class="btn" id="expVen" style="justify-content:center">Ventas</button>
       <button class="btn" id="expGas" style="justify-content:center">Gastos Operativos</button>
       <button class="btn" id="expEnv" style="justify-content:center">Envíos</button>
+      <button class="btn" id="expMer" style="justify-content:center">Mercancía (importaciones)</button>
     </div>
   </div></div>`;
   document.getElementById('mx').onclick=closeModal;
@@ -97,6 +115,7 @@ function openExportModal(){
   document.getElementById('expVen').onclick=()=>exportSection('ventas');
   document.getElementById('expGas').onclick=()=>exportSection('gastos');
   document.getElementById('expEnv').onclick=()=>exportSection('envios');
+  document.getElementById('expMer').onclick=()=>exportSection('mercancia');
 }
 
 function openImportModal(){
