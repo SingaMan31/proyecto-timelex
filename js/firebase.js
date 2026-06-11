@@ -9,4 +9,3 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const fsDb = firebase.firestore();
-const fsStorage = firebase.storage();
