@@ -205,13 +205,13 @@ select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns
 .kpi.bad .v{color:var(--red)}
 
 /* chart */
-.chart{display:flex;align-items:flex-end;gap:10px;height:180px;padding:14px 6px 0}
+.chart{display:flex;align-items:flex-end;gap:14px;height:180px;padding:14px 6px 0}
 .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0}
-.bar-stack{width:100%;max-width:38px;display:flex;flex-direction:column;justify-content:flex-end;height:140px;position:relative}
+.bar-stack{width:100%;max-width:38px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px;height:140px;position:relative}
 .bar{width:100%;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,var(--gold),var(--brand));transition:height .5s cubic-bezier(.2,.8,.2,1);min-height:2px}
 .bar.profit{background:linear-gradient(180deg,var(--green),#3c8a5c)}
 .bar-col .lbl{font-size:10.5px;color:var(--txt-3);white-space:nowrap}
-.bar-col .val{font-size:11px;color:var(--txt-2);font-weight:600;font-variant-numeric:tabular-nums}
+.bar-col .val{font-size:11px;color:var(--txt-2);font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
 .legend{display:flex;gap:18px;margin-top:6px;font-size:12px;color:var(--txt-2)}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:middle}
 
@@ -351,9 +351,11 @@ select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns
   .kpi .v{font-size:21px}
   .kpi .meta{font-size:11px}
 
-  /* chart con scroll horizontal */
+  /* chart con scroll horizontal; cada columna mantiene ancho mínimo para
+     que las barras no se adelgacen ni los montos se amontonen */
   .card-pad:has(.chart){overflow-x:auto;-webkit-overflow-scrolling:touch}
-  .chart{min-width:480px}
+  .chart{min-width:480px;gap:16px}
+  .bar-col{min-width:42px}
 
   /* general padding */
   .app{padding:0 14px 80px}

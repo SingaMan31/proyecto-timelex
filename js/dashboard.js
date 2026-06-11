@@ -32,8 +32,8 @@ function viewDashboard(){
   const maxF=Math.max(1,...days.map(d=>map[d].f));
   const recent=days.slice(-14);
   const bars=recent.map(d=>{
-    const h=Math.round(map[d].f/maxF*140);
-    return `<div class="bar-col"><div class="val">$${Math.round(map[d].f)}</div><div class="bar-stack"><div class="bar" style="height:${h}px"></div></div><div class="lbl">${fDate(d).slice(0,5)}</div></div>`;
+    const h=Math.round(map[d].f/maxF*120);
+    return `<div class="bar-col"><div class="bar-stack"><div class="val">$${Math.round(map[d].f)}</div><div class="bar" style="height:${h}px"></div></div><div class="lbl">${fDate(d).slice(0,5)}</div></div>`;
   }).join('');
   const rowsDaily=[...days].reverse().map(d=>`<tr>
       <td>${fDateLong(d)}</td>
